@@ -31,15 +31,7 @@ div {
     margin-bottom: 15px;
 }
 
-/* input[type="range"] {
-    width: 100%;
-    -webkit-appearance: none;
-    height: 6px;
-    background: #007bff;
-    outline: none;
-    border-radius: 5px;
-    cursor: pointer;
-} */
+
 
 input[type="range"] {
     -webkit-appearance: none;
@@ -50,14 +42,6 @@ input[type="range"] {
    outline: none;
  }
 
-/* input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
-    background: #007bff;
-    border-radius: 50%;
-    cursor: pointer;
-} */
 
 input[type="range"]::-webkit-slider-runnable-track {
     height: 6px;
