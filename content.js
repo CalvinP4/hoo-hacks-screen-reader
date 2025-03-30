@@ -37,3 +37,21 @@ document.addEventListener("focusin", (event) => {
     readElementText(target);
   }
 });
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === "getPageText") {
+    const textNodes = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const textContent = [];
+
+    while (textNodes.nextNode()) {
+      const node = textNodes.currentNode;
+      if (node.textContent.trim() !== "") {
+        textContent.push(node.textContent);
+      }
+    }
+
+    const fullText = textContent.join(" ");
+    sendResponse({ text: fullText });
+    return true;
+  }
+});

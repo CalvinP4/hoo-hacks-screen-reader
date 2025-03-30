@@ -1,13 +1,51 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "toggleReader") {
-    console.log(`Screen Reader: ${message.enabled ? "ON" : "OFF"}`);
-    sendResponse({ status: "success" }); // Ensure response to prevent error
-  }
-  return true; // Keep the message channel open for async response
-});
-
-chrome.commands.onCommand.addListener((command) => {
-  if (command === "read-current" && currentElement) {
-    readElementText(currentElement);
-  }
-});
+    if (message.action === "toggleReader") {
+      console.log(`Screen Reader: ${message.enabled ? "ON" : "OFF"}`);
+      sendResponse({ status: "success" });
+      return; 
+    }
+  
+  
+    if (message.type === "summarize") {
+      // Async work starts here
+      fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer <OPEN_AI_API_KEY>",
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content: "Summarize the following webpage content. Keep the summary to a maximum of 3 lines. Only highlight the main features of this page.",
+            },
+            {
+              role: "user",
+              content: message.payload.slice(0, 12000),
+            },
+          ],
+          temperature: 0.7,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          const summary = data.choices?.[0]?.message?.content || "No summary.";
+          console.log("Summarized text:", summary);
+          sendResponse({ summary });
+        })
+        .catch((err) => {
+          console.error("Summarization failed:", err);
+          sendResponse({ summary: "An error occurred while summarizing." });
+        });
+  
+      return true; 
+    }
+  });
+  
+  chrome.commands.onCommand.addListener((command) => {
+    if (command === "read-current" && currentElement) {
+      readElementText(currentElement);
+    }
+  });
