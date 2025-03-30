@@ -2,7 +2,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "toggleReader") {
       console.log(`Screen Reader: ${message.enabled ? "ON" : "OFF"}`);
       sendResponse({ status: "success" });
-      return; 
+      return;
     }
   
   
@@ -40,7 +40,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ summary: "An error occurred while summarizing." });
         });
   
-      return true; 
+      return true;
     }
   });
   
