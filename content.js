@@ -112,6 +112,13 @@ async function readImageText(imgElement) {
 
 document.addEventListener("keydown", (event) => {
   if (!screenReaderEnabled) return;
+
+  if (event.key === "Control") {
+    // If Ctrl is pressed, stop any ongoing speech
+    window.speechSynthesis.cancel();
+    return;
+  }
+
   if (
     ["Tab", "ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"].includes(
       event.key
@@ -119,7 +126,7 @@ document.addEventListener("keydown", (event) => {
   ) {
     setTimeout(async () => {
       const activeElement = document.activeElement;
-      if (activeElement && activeElement !== currentElement) {
+      if (activeElement) { // Not the best fix, but works for now
         currentElement = activeElement;
         if (activeElement.tagName === "P") {
           readElementText(activeElement);
