@@ -4,7 +4,21 @@ const voicePitch = document.getElementById("voicePitch");
 const voiceVolume = document.getElementById("voiceVolume");
 const testButton = document.getElementById("testButton");
 const summaryButton = document.getElementById("summaryButton");
+const describeImagesButton = document.getElementById("descImages");
 const askQuestionButton = document.getElementById("askQuestionButton");
+
+// TODO: Move this into a helper file
+async function imageUrlToBase64(url) {
+  const response = await fetch(url);
+  const blob = await response.blob();
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(",")[1]); // Just the base64 part
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
 
 testButton.addEventListener("click", () => {
   const msg = new SpeechSynthesisUtterance("Testing voice settings.");
@@ -55,6 +69,46 @@ summaryButton.addEventListener("click", async () => {
 
   // Read it aloud
   const msg = new SpeechSynthesisUtterance(summary);
+  msg.rate = parseFloat(voiceRate.value);
+  msg.pitch = parseFloat(voicePitch.value);
+  msg.volume = parseFloat(voiceVolume.value);
+  window.speechSynthesis.speak(msg);
+});
+
+// TODO: Remove this once the image description is implemented
+describeImagesButton.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+  const imageSrcs = await new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tab.id, { type: "getImages" }, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError.message);
+      } else {
+        resolve(response.images);
+      }
+    });
+  });
+
+  if (!imageSrcs.length) return alert("No images found.");
+
+  const base64Images = await Promise.all(
+    imageSrcs.slice(0, 1).map(imageUrlToBase64) // just use the first image
+  );
+
+  const image = base64Images[0];
+
+  const description = await new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: "describeImage", imageBase64: image },
+      (response) => {
+        if (chrome.runtime.lastError)
+          return reject(chrome.runtime.lastError.message);
+        resolve(response.description);
+      }
+    );
+  });
+
+  const msg = new SpeechSynthesisUtterance(description);
   msg.rate = parseFloat(voiceRate.value);
   msg.pitch = parseFloat(voicePitch.value);
   msg.volume = parseFloat(voiceVolume.value);
@@ -155,3 +209,4 @@ Now, based on this content, answer the user's question:
     args: [pageText], // pass page content into the injected function
   });
 });
+
