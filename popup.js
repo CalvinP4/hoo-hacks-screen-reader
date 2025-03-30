@@ -7,6 +7,62 @@ const summaryButton = document.getElementById("summaryButton");
 const describeImagesButton = document.getElementById("descImages");
 const askQuestionButton = document.getElementById("askQuestionButton");
 
+
+function speakButtonLabel(label) {
+  const msg = new SpeechSynthesisUtterance(label);
+  msg.rate = parseFloat(voiceRate.value);
+  msg.pitch = parseFloat(voicePitch.value);
+  msg.volume = parseFloat(voiceVolume.value);
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(msg);
+}
+
+const speakOnHoverOrFocus = (element, label) => {
+  element.addEventListener("mouseenter", () => {
+    speakButtonLabel(label);
+  });
+
+  element.addEventListener("focus", () => {
+    speakButtonLabel(label);
+  });
+};
+
+// Add voice labels for each control
+speakOnHoverOrFocus(testButton, "Test voice button");
+speakOnHoverOrFocus(summaryButton, "Read summary button");
+speakOnHoverOrFocus(describeImagesButton, "Describe images button");
+speakOnHoverOrFocus(askQuestionButton, "Ask a question button");
+speakOnHoverOrFocus(toggleVoice, "Toggle screen reader checkbox");
+speakOnHoverOrFocus(voiceRate, "Voice rate slider");
+speakOnHoverOrFocus(voicePitch, "Voice pitch slider");
+speakOnHoverOrFocus(voiceVolume, "Voice volume slider");
+
+
+function speakSliderValue(label, value) {
+  const msg = new SpeechSynthesisUtterance(`${label}: ${value}`);
+  msg.rate = parseFloat(voiceRate.value);
+  msg.pitch = parseFloat(voicePitch.value);
+  msg.volume = parseFloat(voiceVolume.value);
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(msg);
+}
+
+voiceRate.addEventListener("input", () => {
+  speakSliderValue("Voice rate", voiceRate.value);
+});
+
+voicePitch.addEventListener("input", () => {
+  speakSliderValue("Voice pitch", voicePitch.value);
+});
+
+voiceVolume.addEventListener("input", () => {
+  speakSliderValue("Voice volume", voiceVolume.value);
+});
+
+
+
 // TODO: Move this into a helper file
 async function imageUrlToBase64(url) {
   const response = await fetch(url);
@@ -212,7 +268,7 @@ Now, based on this content, answer the user's question:
             headers: {
               "Content-Type": "application/json",
               Authorization:
-                "Bearer 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",
+                "Bearer <your-API-key>",
             },
             body: JSON.stringify({
               model: "gpt-3.5-turbo",
