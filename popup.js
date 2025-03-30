@@ -118,8 +118,8 @@ describeImagesButton.addEventListener("click", async () => {
 document.addEventListener("DOMContentLoaded", () => {
   chrome.storage.sync.get("screenReaderEnabled", (data) => {
     toggleVoice.checked = data.screenReaderEnabled ?? false;
-    console.log(toggleVoice.checked, "Nishit");
-    toggleVoice.checked = enabled;
+    console.log(toggleVoice.checked);
+    enabled = toggleVoice.checked;
     updateUI(enabled);
   });
 });
@@ -212,7 +212,7 @@ Now, based on this content, answer the user's question:
             headers: {
               "Content-Type": "application/json",
               Authorization:
-                "Bearer <OPEN_AI_KEY>", 
+                "Bearer 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",
             },
             body: JSON.stringify({
               model: "gpt-3.5-turbo",
@@ -246,4 +246,3 @@ Now, based on this content, answer the user's question:
     args: [pageText], // pass page content into the injected function
   });
 });
-
