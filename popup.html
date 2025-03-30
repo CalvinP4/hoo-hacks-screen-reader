@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Screen Reader</title>
+  </head>
+  <body>
+    <h2>Screen Reader Options</h2>
+
+    <label>
+      <input type="checkbox" id="toggleVoice" checked /> Enable Screen Reader
+    </label>
+
+    <div>
+      <label>Voice Rate:</label>
+      <input
+        type="range"
+        id="voiceRate"
+        min="0.5"
+        max="2"
+        step="0.1"
+        value="1"
+      />
+    </div>
+
+    <div>
+      <label>Voice Pitch:</label>
+      <input
+        type="range"
+        id="voicePitch"
+        min="0.5"
+        max="2"
+        step="0.1"
+        value="1"
+      />
+    </div>
+
+    <div>
+      <label>Volume:</label>
+      <input
+        type="range"
+        id="voiceVolume"
+        min="0"
+        max="1"
+        step="0.1"
+        value="1"
+      />
+    </div>
+
+    <button id="testButton">Test Voice</button>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
