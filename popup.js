@@ -18,28 +18,36 @@ function speakButtonLabel(label) {
   window.speechSynthesis.speak(msg);
 }
 
-const speakOnHoverOrFocus = (element, label) => {
+
+function speakOnHoverOrFocus(element, label, always = false) {
   element.addEventListener("mouseenter", () => {
-    speakButtonLabel(label);
+    if (always || toggleVoice.checked) {
+      speakButtonLabel(label);
+    }
   });
 
   element.addEventListener("focus", () => {
-    speakButtonLabel(label);
+    if (always || toggleVoice.checked) {
+      speakButtonLabel(label);
+    }
   });
-};
+}
+
 
 // Add voice labels for each control
 speakOnHoverOrFocus(testButton, "Test voice button");
 speakOnHoverOrFocus(summaryButton, "Read summary button");
 speakOnHoverOrFocus(describeImagesButton, "Describe images button");
 speakOnHoverOrFocus(askQuestionButton, "Ask a question button");
-speakOnHoverOrFocus(toggleVoice, "Toggle screen reader checkbox");
+speakOnHoverOrFocus(toggleVoice, "Enable screen reader checkbox", true);
 speakOnHoverOrFocus(voiceRate, "Voice rate slider");
 speakOnHoverOrFocus(voicePitch, "Voice pitch slider");
 speakOnHoverOrFocus(voiceVolume, "Voice volume slider");
 
 
 function speakSliderValue(label, value) {
+  if (!toggleVoice.checked) return;
+
   const msg = new SpeechSynthesisUtterance(`${label}: ${value}`);
   msg.rate = parseFloat(voiceRate.value);
   msg.pitch = parseFloat(voicePitch.value);
@@ -191,6 +199,9 @@ toggleVoice.addEventListener("change", () => {
       } else {
         console.log("Response from background:", response);
         updateUI(enabled);
+
+        const statusText = enabled ? "Screen reader enabled" : "Screen reader disabled";
+        speakButtonLabel(statusText);
       }
     }
   );
