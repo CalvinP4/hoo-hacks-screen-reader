@@ -1,4 +1,6 @@
 let currentElement = null;
+console.log("Content script loaded");
+
 
 function readElementText(element) {
   if (element && element.innerText) {
@@ -50,8 +52,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     }
 
-    const fullText = textContent.join(" ");
+    const fullText = textContent.join(" ");    
     sendResponse({ text: fullText });
     return true;
   }
+
+  if (request.type === "getImages") {
+    const imgElements = Array.from(document.querySelectorAll("img"));
+
+    // Optionally filter by size or visibility
+    const filteredImages = imgElements.filter((img) => {
+      return img.width > 100 && img.height > 100 && img.src;
+    });
+
+    const imageSrcs = filteredImages.map((img) => img.src);
+    sendResponse({ images: imageSrcs });
+    return true;
+  }
 });
+
