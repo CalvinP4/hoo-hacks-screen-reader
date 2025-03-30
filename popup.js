@@ -115,18 +115,54 @@ describeImagesButton.addEventListener("click", async () => {
   window.speechSynthesis.speak(msg);
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+  chrome.storage.sync.get("screenReaderEnabled", (data) => {
+    toggleVoice.checked = data.screenReaderEnabled ?? false;
+    console.log(toggleVoice.checked, "Nishit");
+    toggleVoice.checked = enabled;
+    updateUI(enabled);
+  });
+});
+
 toggleVoice.addEventListener("change", () => {
+  const enabled = toggleVoice.checked;
+
   chrome.runtime.sendMessage(
-    { action: "toggleReader", enabled: toggleVoice.checked },
+    { action: "toggleReader", enabled },
     (response) => {
       if (chrome.runtime.lastError) {
         console.error("Message Error:", chrome.runtime.lastError);
       } else {
         console.log("Response from background:", response);
+        updateUI(enabled);
       }
     }
   );
+
+  if (!enabled) {
+    window.speechSynthesis.cancel(); // Stop speaking when turned OFF
+  }
 });
+
+function updateUI(enabled) {
+  const buttons = [
+    summaryButton,
+    describeImagesButton,
+    askQuestionButton,
+    testButton,
+  ];
+
+  buttons.forEach((button) => {
+    button.disabled = !enabled;
+    button.style.opacity = enabled ? "1" : "0.5"; // Grays out buttons when disabled
+    button.style.cursor = enabled ? "pointer" : "not-allowed";
+  });
+
+  // Update voice settings fields (if needed)
+  voiceRate.disabled = !enabled;
+  voicePitch.disabled = !enabled;
+  voiceVolume.disabled = !enabled;
+}
 
 // ask a question logic
 askQuestionButton.addEventListener("click", async () => {
@@ -175,7 +211,8 @@ Now, based on this content, answer the user's question:
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: "Bearer <OPEN_AI_API_KEY>",
+              Authorization:
+                "Bearer <OPEN_AI_KEY>", 
             },
             body: JSON.stringify({
               model: "gpt-3.5-turbo",

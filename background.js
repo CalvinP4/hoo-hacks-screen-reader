@@ -1,11 +1,30 @@
+let screenReaderEnabled = false; // Store state globally
+
+// Load state from Chrome storage when the extension starts
+chrome.storage.sync.get("screenReaderEnabled", (data) => {
+  screenReaderEnabled = data.screenReaderEnabled ?? false;
+  console.log(`Screen Reader restored: ${screenReaderEnabled ? "ON" : "OFF"}`);
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "toggleReader") {
-    console.log(`Screen Reader: ${message.enabled ? "ON" : "OFF"}`);
-    sendResponse({ status: "success" });
+    screenReaderEnabled = message.enabled;
+
+    // Save the new state in Chrome storage
+    chrome.storage.sync.set({ screenReaderEnabled });
+
+    console.log(`Screen Reader: ${screenReaderEnabled ? "ON" : "OFF"}`);
+
+    sendResponse({ status: "success", enabled: screenReaderEnabled });
     return;
   }
 
-  if (message.type === "describeImage") {
+  if (message.action === "getReaderState") {
+    sendResponse({ enabled: screenReaderEnabled });
+    return;
+  }
+
+  if (message.type === "describeImage" && screenReaderEnabled) {
     (async () => {
       try {
         const openaiResponse = await fetch(
@@ -56,7 +75,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep message port open for async
   }
 
-  if (message.type === "summarize") {
+  if (message.type === "summarize" && screenReaderEnabled) {
     // Async work starts here
     fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -83,6 +102,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })
       .then((res) => res.json())
       .then((data) => {
+        if (!screenReaderEnabled) return;
         const summary = data.choices?.[0]?.message?.content || "No summary.";
         console.log("Summarized text:", summary);
         sendResponse({ summary });

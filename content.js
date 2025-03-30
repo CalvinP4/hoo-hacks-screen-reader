@@ -1,6 +1,19 @@
 let currentElement = null;
-console.log("Content script loaded");
 
+let screenReaderEnabled = false;
+console.log("Content script loaded");
+document.addEventListener("DOMContentLoaded", () => {
+  chrome.storage.sync.get("screenReaderEnabled", (data) => {
+    screenReaderEnabled = data.screenReaderEnabled ?? false;
+    console.log("Screen Reader Enabled:", screenReaderEnabled);
+  });
+});
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.screenReaderEnabled) {
+    screenReaderEnabled = changes.screenReaderEnabled.newValue;
+    console.log("Screen Reader status updated:", screenReaderEnabled);
+  }
+});
 function getElementType(element) {
   if (element instanceof HTMLButtonElement) {
     return "button";
@@ -87,6 +100,7 @@ async function readImageText(imgElement) {
 }
 
 document.addEventListener("keydown", (event) => {
+  if (!screenReaderEnabled) return;
   if (
     ["Tab", "ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"].includes(
       event.key
@@ -113,6 +127,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("focusin", (event) => {
+  if (!screenReaderEnabled) return;
   const target = event.target;
   if (target && target !== currentElement && target.innerText.trim() !== "") {
     currentElement = target;
