@@ -1,13 +1,26 @@
 let currentElement = null;
 
 let screenReaderEnabled = false;
-console.log("Content script loaded");
-document.addEventListener("DOMContentLoaded", () => {
+
+function onDomReady(callback) {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", callback);
+  } else {
+    callback(); // DOM is already loaded
+  }
+}
+
+onDomReady(() => {
   chrome.storage.sync.get("screenReaderEnabled", (data) => {
     screenReaderEnabled = data.screenReaderEnabled ?? false;
     console.log("Screen Reader Enabled:", screenReaderEnabled);
   });
+
+  document.querySelectorAll("p").forEach((p) => {
+    p.setAttribute("tabindex", "0");
+  });
 });
+
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.screenReaderEnabled) {
     screenReaderEnabled = changes.screenReaderEnabled.newValue;
@@ -75,8 +88,6 @@ function readElementText(element) {
 async function readImageText(imgElement) {
   const imgSrc = imgElement.src;
 
-  console.log("Image source:", imgSrc);
-
   try {
     const base64Image = await imageUrlToBase64(imgSrc);
 
@@ -110,7 +121,9 @@ document.addEventListener("keydown", (event) => {
       const activeElement = document.activeElement;
       if (activeElement && activeElement !== currentElement) {
         currentElement = activeElement;
-        if (activeElement.tagName === "A") {
+        if (activeElement.tagName === "P") {
+          readElementText(activeElement);
+        } else if (activeElement.tagName === "A") {
           const imgElement = activeElement.querySelector("img");
 
           if (imgElement) {
@@ -129,9 +142,15 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("focusin", (event) => {
   if (!screenReaderEnabled) return;
   const target = event.target;
-  if (target && target !== currentElement && target.innerText.trim() !== "") {
+  if (target && target !== currentElement) {
     currentElement = target;
-    readElementText(target);
+
+    if (target.tagName === "P") {
+      // Handle paragraph elements
+      readElementText(target);
+    } else if (target.innerText.trim() !== "") {
+      readElementText(target);
+    }
   }
 });
 
