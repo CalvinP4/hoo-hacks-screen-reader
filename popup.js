@@ -7,6 +7,7 @@ const summaryButton = document.getElementById("summaryButton");
 const describeImagesButton = document.getElementById("descImages");
 const askQuestionButton = document.getElementById("askQuestionButton");
 
+// TODO: Move this into a helper file
 async function imageUrlToBase64(url) {
   const response = await fetch(url);
   const blob = await response.blob();
@@ -74,6 +75,7 @@ summaryButton.addEventListener("click", async () => {
   window.speechSynthesis.speak(msg);
 });
 
+// TODO: Remove this once the image description is implemented
 describeImagesButton.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
