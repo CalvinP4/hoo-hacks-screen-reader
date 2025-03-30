@@ -110,6 +110,81 @@ async function readImageText(imgElement) {
   }
 }
 
+function findSectionByName(sectionName) {
+  const headings = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
+  sectionName = sectionName.toLowerCase();
+
+  for (let i = 0; i < headings.length; i++) {
+    const heading = headings[i];
+    const headingText = heading.innerText.toLowerCase();
+
+    if (headingText.includes(sectionName)) {
+      // ✅ Scroll directly to the actual heading
+      heading.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      // ✅ Optionally highlight it for visual confirmation
+      heading.style.outline = "3px solid #007bff";
+      heading.style.transition = "outline 0.3s";
+      setTimeout(() => {
+        heading.style.outline = "";
+      }, 2000);
+
+      // ✅ Read everything from heading until the next heading
+      const sectionElements = [heading];
+      let sibling = heading.nextElementSibling;
+
+      while (
+        sibling &&
+        !(
+          sibling.tagName.match(/^H[1-6]$/) &&
+          parseInt(sibling.tagName[1]) <= parseInt(heading.tagName[1])
+        )
+      ) {
+        sectionElements.push(sibling);
+        sibling = sibling.nextElementSibling;
+      }
+
+      const fullText = sectionElements
+        .map((el) => el?.innerText?.trim() || "")
+        .join("\n");
+
+      const msg = new SpeechSynthesisUtterance(
+        fullText || "This section is empty."
+      );
+      msg.rate = 1;
+      msg.pitch = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(msg);
+
+      return heading;
+    }
+  }
+
+  console.warn("❌ No heading matched for section:", sectionName);
+  return null;
+}
+
+//new
+function scrollToAndReadSection(sectionElement) {
+  if (!sectionElement) return;
+
+  sectionElement.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Add highlight for visibility
+  sectionElement.style.outline = "3px solid #007bff";
+  sectionElement.style.transition = "outline 0.3s";
+
+  setTimeout(() => {
+    const text = sectionElement.innerText.trim();
+    const msg = new SpeechSynthesisUtterance(text || "This section is empty.");
+    msg.rate = 1;
+    msg.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(msg);
+  }, 500);
+}
+
+
 document.addEventListener("keydown", (event) => {
   if (!screenReaderEnabled) return;
 
@@ -163,21 +238,47 @@ document.addEventListener("focusin", (event) => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "getPageText") {
-    const textNodes = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT
+    const elements = document.querySelectorAll(
+      "h1, h2, h3, h4, h5, h6, p, a, button, li, span, input, label"
     );
-    const textContent = [];
 
-    while (textNodes.nextNode()) {
-      const node = textNodes.currentNode;
-      if (node.textContent.trim() !== "") {
-        textContent.push(node.textContent);
+    const structuredText = Array.from(elements).map((el) => {
+      const tag = el.tagName.toLowerCase();
+      let label =
+        {
+          h1: "Heading 1",
+          h2: "Heading 2",
+          h3: "Heading 3",
+          h4: "Heading 4",
+          h5: "Heading 5",
+          h6: "Heading 6",
+          p: "Paragraph",
+          a: "Link",
+          button: "Button",
+          li: "List Item",
+          span: "Text",
+          input: "Input Field",
+          label: "Label",
+        }[tag] || "Element";
+
+      let text = el.innerText?.trim() || el.value || "";
+
+      // For links, include the href
+      if (tag === "a" && el.href) {
+        text += ` (URL: ${el.href})`;
       }
-    }
 
-    const fullText = textContent.join(" ");
-    sendResponse({ text: fullText });
+      // For inputs, include placeholder if no value
+      if (tag === "input" && !text && el.placeholder) {
+        text = `Placeholder: ${el.placeholder}`;
+      }
+
+      return text ? `${label}: ${text}` : null;
+    });
+
+    const filteredText = structuredText.filter(Boolean).join("\n");
+
+    sendResponse({ text: filteredText });
     return true;
   }
 
@@ -194,4 +295,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ images: imageSrcs });
     return true;
   }
+  //new
+  if (request.type === "scrollToSection") {
+    console.log("scrollToSection received:", request.name); // ✅ log it
+
+    const section = findSectionByName(request.name);
+
+    if (section) {
+      console.log("Scrolling to matched section:", section); // ✅ see what matched
+      scrollToAndReadSection(section);
+      sendResponse({ status: "success" });
+    } else {
+      console.warn("No section found matching:", request.name);
+      sendResponse({ status: "not_found" });
+    }
+
+    return true;
+  }
 });
+

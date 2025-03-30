@@ -200,7 +200,9 @@ toggleVoice.addEventListener("change", () => {
         console.log("Response from background:", response);
         updateUI(enabled);
 
-        const statusText = enabled ? "Screen reader enabled" : "Screen reader disabled";
+        const statusText = enabled
+          ? "Screen reader enabled"
+          : "Screen reader disabled";
         speakButtonLabel(statusText);
       }
     }
@@ -235,81 +237,105 @@ function updateUI(enabled) {
 askQuestionButton.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  // First: Get page content
+  // Get page content first
   const pageText = await new Promise((resolve, reject) => {
     chrome.tabs.sendMessage(tab.id, { type: "getPageText" }, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(
-          "Unable to access page text: " + chrome.runtime.lastError.message
-        );
-      } else {
-        resolve(response.text);
-      }
+      if (chrome.runtime.lastError) reject(chrome.runtime.lastError.message);
+      else resolve(response.text);
     });
   });
 
-  // Now: Use speech recognition inside the tab
-  chrome.scripting.executeScript({
+  // Inject speech recognition and capture the question
+  const [{ result: userQuestion }] = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    func: async (pageContent) => {
-      const recognition = new (window.SpeechRecognition ||
-        window.webkitSpeechRecognition)();
-      recognition.lang = "en-US";
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
+    func: () => {
+      return new Promise((resolve, reject) => {
+        const recognition = new (window.SpeechRecognition ||
+          window.webkitSpeechRecognition)();
+        recognition.lang = "en-US";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
 
-      recognition.start();
+        recognition.start();
 
-      recognition.onresult = async (event) => {
-        const userQuestion = event.results[0][0].transcript;
+        recognition.onresult = (event) => {
+          resolve(event.results[0][0].transcript);
+        };
 
-        const prompt = `
+        recognition.onerror = (event) => {
+          console.error("🎙️ Speech recognition error:", event.error);
+          reject("Speech recognition error: " + event.error);
+        };
+      });
+    },
+  });
+
+  const trimmedPageText = pageText.slice(0, 10000);
+  const prompt = `
 You are a helpful assistant. Here is the content of the webpage:
 
-"${pageContent.slice(0, 10000)}"
+"${trimmedPageText}"
 
 Now, based on this content, answer the user's question:
 "${userQuestion}"
-        `;
+  `;
 
-        const response = await fetch(
-          "https://api.openai.com/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization:
-                "Bearer <your-API-key>",
-            },
-            body: JSON.stringify({
-              model: "gpt-3.5-turbo",
-              messages: [{ role: "user", content: prompt }],
-              temperature: 0.7,
-            }),
-          }
-        );
-
-        console.log(response);
-
-        const data = await response.json();
-        const reply =
-          data.choices?.[0]?.message?.content ||
-          "Sorry, I couldn't get a response.";
-
-        const msg = new SpeechSynthesisUtterance(reply);
-        msg.rate = 1;
-        msg.pitch = 1;
-        msg.volume = 1;
-
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(msg);
-      };
-
-      recognition.onerror = (event) => {
-        console.error("Speech recognition error", event.error);
-        alert("Speech recognition error: " + event.error);
-      };
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization:
+        "Bearer <OPEN_API_KEY>"
     },
-    args: [pageText], // pass page content into the injected function
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+    }),
   });
+
+  const data = await response.json();
+  const reply =
+    data.choices?.[0]?.message?.content || "Sorry, I couldn't get a response.";
+
+  // Speak the response
+  const msg = new SpeechSynthesisUtterance(reply);
+  msg.rate = parseFloat(voiceRate.value);
+  msg.pitch = parseFloat(voicePitch.value);
+  msg.volume = parseFloat(voiceVolume.value);
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(msg);
+
+  // Extract section reference
+  const sectionRegex =
+    /(?:go to|scroll to|navigate to|find|read|click on|visit)\s+(?:the\s+)?(.+?)\s+(?:section|area|page)/i;
+  const match = reply.match(sectionRegex);
+
+  if (match && match[1]) {
+    const sectionName = match[1].trim();
+    console.log("✅ Extracted section name:", sectionName);
+
+    chrome.tabs.sendMessage(
+      tab.id,
+      {
+        type: "scrollToSection",
+        name: sectionName,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            "ScrollToSection error:",
+            chrome.runtime.lastError.message
+          );
+        } else if (response?.status === "not_found") {
+          console.warn("⚠️ Section not found:", sectionName);
+        } else {
+          console.log("✅ Scrolled to section:", sectionName);
+        }
+      }
+    );
+  } else {
+    console.warn("❌ Could not extract section name from GPT response.");
+  }
 });
+
