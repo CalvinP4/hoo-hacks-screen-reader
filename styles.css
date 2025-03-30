@@ -31,7 +31,7 @@ div {
     margin-bottom: 15px;
 }
 
-input[type="range"] {
+/* input[type="range"] {
     width: 100%;
     -webkit-appearance: none;
     height: 6px;
@@ -39,16 +39,53 @@ input[type="range"] {
     outline: none;
     border-radius: 5px;
     cursor: pointer;
-}
+} */
 
-input[type="range"]::-webkit-slider-thumb {
+input[type="range"] {
+    -webkit-appearance: none;
+   width: 100%;
+   height: 6px;
+   background: transparent;
+   border-radius: 5px;
+   outline: none;
+ }
+
+/* input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
     background: #007bff;
     border-radius: 50%;
     cursor: pointer;
+} */
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    /* background: linear-gradient(to right, #007bff 50%, #ddd 50%); */
+    border-radius: 5px;
 }
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #007bff;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-top: -5px; /* Aligns thumb vertically */
+  }
+  
+  input[type="range"]::-moz-range-track {
+    height: 6px;
+    background: #ddd;
+    border-radius: 5px;
+  }
+  
+  input[type="range"]::-moz-range-progress {
+    background: #007bff;
+    height: 6px;
+    border-radius: 5px;
+  }
 
 button {
     width: 100%;
@@ -67,6 +104,10 @@ button:hover {
 }
 
 #summaryButton {
+    margin-top: 4px;
+}
+
+#descImages{
     margin-top: 4px;
 }
 

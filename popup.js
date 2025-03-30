@@ -8,6 +8,23 @@ const describeImagesButton = document.getElementById("descImages");
 const askQuestionButton = document.getElementById("askQuestionButton");
 
 
+function updateRangeBackground(slider) {
+  const min = parseFloat(slider.min);
+  const max = parseFloat(slider.max);
+  const val = parseFloat(slider.value);
+  const percent = ((val - min) / (max - min)) * 100;
+
+  slider.style.background = `linear-gradient(to right, #007bff ${percent}%, #ddd ${percent}%)`;
+}
+
+// Apply to all sliders
+[voiceRate, voicePitch, voiceVolume].forEach((slider) => {
+  updateRangeBackground(slider); // Set initial background
+  slider.addEventListener("input", () => updateRangeBackground(slider));
+});
+
+
+
 function speakButtonLabel(label) {
   const msg = new SpeechSynthesisUtterance(label);
   msg.rate = parseFloat(voiceRate.value);
@@ -285,7 +302,7 @@ Now, based on this content, answer the user's question:
     headers: {
       "Content-Type": "application/json",
       Authorization:
-        "Bearer <OPEN_API_KEY>"
+        "Bearer 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", // replace with env-secured key
     },
     body: JSON.stringify({
       model: "gpt-3.5-turbo",
@@ -338,4 +355,3 @@ Now, based on this content, answer the user's question:
     console.warn("❌ Could not extract section name from GPT response.");
   }
 });
-
